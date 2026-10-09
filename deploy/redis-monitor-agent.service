@@ -1,0 +1,18 @@
+[Unit]
+Description=Redis Monitor Agent
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=root
+Group=root
+WorkingDirectory=/opt/redis-monitor-agent
+EnvironmentFile=-/etc/redis-monitor-agent/agent.env
+ExecStart=/usr/bin/java -jar /opt/redis-monitor-agent/redis-monitor-agent.jar
+Restart=on-failure
+RestartSec=5
+SuccessExitStatus=143
+
+[Install]
+WantedBy=multi-user.target

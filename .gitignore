@@ -1,0 +1,26 @@
+# Maven build output
+/target/
+
+# IntelliJ and editor state
+/.idea/
+*.iml
+/.vscode/
+
+# Codex local backups
+/.codex-backups/
+
+# Runtime state and credentials
+agent-token.dat
+*.env
+!docs/agent.env.example
+/state/
+/data/
+
+# Logs and JVM crash files
+*.log
+hs_err_pid*
+replay_pid*
+
+# OS files
+.DS_Store
+Thumbs.db

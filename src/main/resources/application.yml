@@ -1,0 +1,60 @@
+server:
+  port: ${AGENT_SERVER_PORT:9101}
+
+spring:
+  application:
+    name: redis-monitor-agent
+  servlet:
+    multipart:
+      max-file-size: 512MB
+      max-request-size: 513MB
+
+# Agent 配置
+agent:
+  platform-url: ${AGENT_PLATFORM_URL:http://localhost:8100}
+  register-code: ${AGENT_REGISTER_CODE:}
+  agent-name: ${AGENT_NAME:}
+  collect-interval: ${AGENT_COLLECT_INTERVAL:300000}
+  heartbeat-interval: ${AGENT_HEARTBEAT_INTERVAL:30000}
+  agent-root: ${AGENT_ROOT:/opt/redis-monitor-agent}
+  script-dir: ${AGENT_SCRIPT_DIR:/opt/redis-monitor-agent/scripts}
+  state-dir: ${AGENT_STATE_DIR:/opt/redis-monitor-agent/state}
+  redis:
+    root-dir: ${AGENT_REDIS_ROOT:/opt/redis}
+    releases-dir: ${AGENT_REDIS_RELEASES_DIR:/opt/redis/releases}
+    current-link: ${AGENT_REDIS_CURRENT_LINK:/opt/redis/current}
+    config-dir: ${AGENT_REDIS_CONFIG_DIR:/opt/redis/config}
+    data-dir: ${AGENT_REDIS_DATA_DIR:/opt/redis/data}
+    service-name: ${AGENT_REDIS_SERVICE:redis-server.service}
+    host: ${AGENT_REDIS_HOST:127.0.0.1}
+    port: ${AGENT_REDIS_PORT:6379}
+    password: ${AGENT_REDIS_PASSWORD:}
+    db: ${AGENT_REDIS_DB:0}
+    timeout: ${AGENT_REDIS_TIMEOUT:2000}
+    pool:
+      max-total: 5
+      max-idle: 2
+      min-idle: 1
+      max-wait-millis: 2000
+  sentinel:
+    service-name: ${AGENT_SENTINEL_SERVICE:redis-sentinel.service}
+    host: ${AGENT_SENTINEL_HOST:127.0.0.1}
+    port: ${AGENT_SENTINEL_PORT:26379}
+    password: ${AGENT_SENTINEL_PASSWORD:}
+    master-name: ${AGENT_SENTINEL_MASTER_NAME:mymaster}
+    timeout: ${AGENT_SENTINEL_TIMEOUT:2000}
+  recovery:
+    redis-backup-file: ${AGENT_RECOVERY_REDIS_BACKUP_FILE:/backup/redis-config/redis.conf.bak}
+    sentinel-backup-file: ${AGENT_RECOVERY_SENTINEL_BACKUP_FILE:/backup/redis-config/sentinel.conf.bak}
+    redis-target-file: ${AGENT_RECOVERY_REDIS_TARGET_FILE:/etc/redis/redis.conf}
+    sentinel-target-file: ${AGENT_RECOVERY_SENTINEL_TARGET_FILE:/etc/redis/sentinel.conf}
+  # Token 持久化文件路径（注册成功后保存，重启不重复注册）
+  token-file: ${AGENT_TOKEN_FILE:/opt/redis-monitor-agent/agent-token.dat}
+  # 升级包下载临时目录
+  upgrade-dir: ${AGENT_UPGRADE_DIR:/tmp/redis-upgrade/}
+  version-package-max-bytes: ${AGENT_VERSION_PACKAGE_MAX_BYTES:536870912}
+  config-file-max-bytes: ${AGENT_CONFIG_FILE_MAX_BYTES:10485760}
+
+logging:
+  level:
+    com.danuvius.agent: INFO
