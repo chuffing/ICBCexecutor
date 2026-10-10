@@ -33,6 +33,12 @@ public class AgentProperties {
     /** 版本切换和回滚状态的持久化目录。 */
     private String stateDir = "/opt/redis-monitor-agent/state";
 
+    /** 运维步骤最终结果的本地持久化目录。 */
+    private String taskResultDir = "/opt/redis-monitor-agent/state/task-results";
+
+    /** 未确认任务结果的补报间隔（毫秒）。 */
+    private long taskResultRetryInterval = 5000;
+
     /** 本地 Redis 配置 */
     private RedisConfig redis = new RedisConfig();
 

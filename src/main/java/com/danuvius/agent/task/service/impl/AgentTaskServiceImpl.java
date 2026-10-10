@@ -1,8 +1,6 @@
 package com.danuvius.agent.task.service.impl;
 
 import com.alibaba.fastjson.JSON;
-import com.danuvius.agent.client.PlatformClient;
-import com.danuvius.agent.config.AgentProperties;
 import com.danuvius.agent.host.operation.PrecheckHostOperation;
 import com.danuvius.agent.metric.service.CollectService;
 import com.danuvius.agent.task.model.PlatformTask;
@@ -19,7 +17,8 @@ import com.danuvius.agent.redis.operation.StopRedisOperation;
 import com.danuvius.agent.sentinel.operation.StartSentinelOperation;
 import com.danuvius.agent.sentinel.operation.StopSentinelOperation;
 import com.danuvius.agent.task.service.AgentTaskService;
-import com.danuvius.agent.registration.service.RegisterService;
+import com.danuvius.agent.task.result.model.TaskResultRecord;
+import com.danuvius.agent.task.result.service.TaskResultDeliveryService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -40,13 +39,7 @@ import java.util.Map;
 public class AgentTaskServiceImpl implements AgentTaskService {
 
     @Autowired
-    private PlatformClient platformClient;
-
-    @Autowired
-    private AgentProperties properties;
-
-    @Autowired
-    private RegisterService registerService;
+    private TaskResultDeliveryService taskResultDeliveryService;
 
     @Autowired
     private CollectService collectService;
@@ -99,6 +92,14 @@ public class AgentTaskServiceImpl implements AgentTaskService {
         String taskNo = task.requireTaskNo();
         int stepNo = task.requireStepNo();
         OperationType operationType = task.resolveOperationType();
+        TaskResultRecord existingResult = taskResultDeliveryService.findResult(taskNo, stepNo);
+        if (existingResult != null) {
+            // 平台可能因网络超时重复下发同一步骤；已有最终结果时只补报，不重复操作服务。
+            taskResultDeliveryService.reportStoredResult(existingResult);
+            log.info("收到重复任务，复用本机已有结果: taskNo={}, stepNo={}, type={}",
+                    taskNo, stepNo, operationType);
+            return;
+        }
         Map<String, String> params = task.getParams() == null
                 ? Collections.emptyMap()
                 : new HashMap<>(task.getParams());
@@ -153,34 +154,9 @@ public class AgentTaskServiceImpl implements AgentTaskService {
                 result.getMessage()
         );
 
-        try {
-            platformClient.reportTaskResult(
-                    taskNo,
-                    stepNo,
-                    registerService.getAgentId(),
-                    operationType,
-                    status,
-                    JSON.toJSONString(result),
-                    properties.getPlatformUrl(),
-                    registerService.getToken()
-            );
-            log.info(
-                    "运维任务结果已上报: taskNo={}, stepNo={}, agentId={}, operationType={}, status={}",
-                    taskNo,
-                    stepNo,
-                    registerService.getAgentId(),
-                    operationType,
-                    status
-            );
-        } catch (Exception e) {
-            log.error(
-                    "运维任务结果上报失败: taskNo={}, operationType={}, status={}",
-                    taskNo,
-                    operationType,
-                    status,
-                    e
-            );
-        }
+        // 先落盘再上报；上报失败时由定时补报任务继续发送，避免平台永久等待。
+        taskResultDeliveryService.recordAndReport(
+                taskNo, stepNo, operationType, status, JSON.toJSONString(result));
 
         refreshRuntimeStatusAfterRecovery(result, operationType);
     }

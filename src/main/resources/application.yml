@@ -19,6 +19,9 @@ agent:
   agent-root: ${AGENT_ROOT:/opt/redis-monitor-agent}
   script-dir: ${AGENT_SCRIPT_DIR:/opt/redis-monitor-agent/scripts}
   state-dir: ${AGENT_STATE_DIR:/opt/redis-monitor-agent/state}
+  # 操作完成后先把结果保存到本机；网络恢复后继续补报。
+  task-result-dir: ${AGENT_TASK_RESULT_DIR:/opt/redis-monitor-agent/state/task-results}
+  task-result-retry-interval: ${AGENT_TASK_RESULT_RETRY_INTERVAL:5000}
   redis:
     root-dir: ${AGENT_REDIS_ROOT:/opt/redis}
     releases-dir: ${AGENT_REDIS_RELEASES_DIR:/opt/redis/releases}
