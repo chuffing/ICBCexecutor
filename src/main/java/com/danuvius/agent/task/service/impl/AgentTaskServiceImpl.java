@@ -85,16 +85,20 @@ public class AgentTaskServiceImpl implements AgentTaskService {
      */
     @Override
     public void submitTask(PlatformTask task) {
+
         if (task == null) {
             throw new IllegalArgumentException("任务内容不能为空");
         }
 
+        // 校验任务信息，获取任务编号、步骤编号和操作类型。
         String taskNo = task.requireTaskNo();
         int stepNo = task.requireStepNo();
         OperationType operationType = task.resolveOperationType();
+
+        // 检查任务是否已经执行过，若已有最终结果，就尝试重新上报已有结果。
         TaskResultRecord existingResult = taskResultDeliveryService.findResult(taskNo, stepNo);
         if (existingResult != null) {
-            // 平台可能因网络超时重复下发同一步骤；已有最终结果时只补报，不重复操作服务。
+            // 已有最终结果时只补报，不重复操作服务。
             taskResultDeliveryService.reportStoredResult(existingResult);
             log.info("收到重复任务，复用本机已有结果: taskNo={}, stepNo={}, type={}",
                     taskNo, stepNo, operationType);
@@ -103,6 +107,8 @@ public class AgentTaskServiceImpl implements AgentTaskService {
         Map<String, String> params = task.getParams() == null
                 ? Collections.emptyMap()
                 : new HashMap<>(task.getParams());
+
+        // 提交线程池。
         operationTaskExecutor.execute(() -> executeTask(taskNo, stepNo, operationType, params));
         log.info("任务已提交到运维线程: taskNo={}, stepNo={}, type={}",
                 taskNo, stepNo, operationType);
@@ -111,20 +117,24 @@ public class AgentTaskServiceImpl implements AgentTaskService {
     /**
      * 执行一个已经通过基础校验的任务，并向平台上报最终结果。
      *
-     * @param taskNo 业务任务编号
-     * @param stepNo 当前操作在业务任务中的步骤序号
-     * @param operationType 固定操作类型
-     * @param params 当前操作参数的只读副本
+     * @param taskNo 任务编号
+     * @param stepNo 步骤组编号
+     * @param operationType 操作类型
+     * @param params 操作参数
      */
     private void executeTask(String taskNo, int stepNo, OperationType operationType,
                              Map<String, String> params) {
         log.info("开始执行运维任务: taskNo={}, stepNo={}, type={}",
                 taskNo, stepNo, operationType);
 
+        // 声明一个变量，用来保存操作的执行结果。
         OperationResult result;
+
         try {
+            // 根据运维操作类型，将任务分发给对应的本机操作处理器。
             result = executeOperation(taskNo, operationType, params);
         } catch (LinkageError e) {
+            // 处理依赖链接错误
             log.error("运维任务发生依赖链接错误: taskNo={}, type={}", taskNo, operationType, e);
             long now = System.currentTimeMillis();
             result = OperationResult.failure(
@@ -134,6 +144,7 @@ public class AgentTaskServiceImpl implements AgentTaskService {
                     now
             );
         } catch (Exception e) {
+            // 处理未预期的异常
             log.error("运维任务发生未处理异常: taskNo={}, type={}", taskNo, operationType, e);
             long now = System.currentTimeMillis();
             result = OperationResult.failure(
@@ -156,7 +167,11 @@ public class AgentTaskServiceImpl implements AgentTaskService {
 
         // 先落盘再上报；上报失败时由定时补报任务继续发送，避免平台永久等待。
         taskResultDeliveryService.recordAndReport(
-                taskNo, stepNo, operationType, status, JSON.toJSONString(result));
+                taskNo,
+                stepNo,
+                operationType,
+                status,
+                JSON.toJSONString(result));
 
         refreshRuntimeStatusAfterRecovery(result, operationType);
     }
@@ -176,10 +191,10 @@ public class AgentTaskServiceImpl implements AgentTaskService {
     }
 
     /**
-     * 将白名单操作类型分发到对应的本机处理器。
+     * 根据运维操作类型，将任务分发给对应的本机操作处理器。
      *
-     * @param taskNo 业务任务编号
-     * @param operationType 固定操作类型
+     * @param taskNo 任务编号
+     * @param operationType 操作类型
      * @param params 当前操作需要的参数
      * @return 对应处理器的统一操作结果
      */

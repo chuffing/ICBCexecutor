@@ -5,16 +5,19 @@ import com.danuvius.agent.common.operation.OperationType;
 import com.danuvius.agent.config.AgentProperties;
 import com.danuvius.agent.registration.service.RegisterService;
 import com.danuvius.agent.task.result.model.TaskResultRecord;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Required;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
 
 /**
- * 负责“先落盘、后上报、失败后补报”的任务结果交付流程。
+ * 将运维结果持久化到执行器本地，并尝试上报主平台。
  */
 @Slf4j
 @Service
+@RequiredArgsConstructor
 public class TaskResultDeliveryService {
 
     private final TaskResultStore resultStore;
@@ -22,25 +25,14 @@ public class TaskResultDeliveryService {
     private final AgentProperties properties;
     private final RegisterService registerService;
 
-    /** 注入结果存储、平台注册信息和 HTTP 客户端。 */
-    public TaskResultDeliveryService(TaskResultStore resultStore,
-                                     PlatformClient platformClient,
-                                     AgentProperties properties,
-                                     RegisterService registerService) {
-        this.resultStore = resultStore;
-        this.platformClient = platformClient;
-        this.properties = properties;
-        this.registerService = registerService;
-    }
-
     /**
      * 保存刚执行完成的最终结果，并立即尝试上报一次。
      *
-     * @param taskNo 业务任务编号
-     * @param stepNo 步骤序号
-     * @param operationType 原子操作类型
+     * @param taskNo 当前运维任务编号
+     * @param stepNo 当前步骤组编号
+     * @param operationType 本次执行的擦欧总
      * @param status SUCCESS 或 FAILED
-     * @param resultJson 完整 OperationResult JSON
+     * @param resultJson 详细执行结果的JSON字符串
      */
     public void recordAndReport(String taskNo, int stepNo, OperationType operationType,
                                 String status, String resultJson) {
@@ -54,8 +46,10 @@ public class TaskResultDeliveryService {
         record.setFinishTime(System.currentTimeMillis());
         record.setReported(false);
 
-        // 必须先持久化，再发网络请求；这样网络断开或进程重启都不会丢失结果。
+        // 先持久化。
         resultStore.save(record);
+
+        // 尝试向平台上报结果。
         tryReport(record);
     }
 

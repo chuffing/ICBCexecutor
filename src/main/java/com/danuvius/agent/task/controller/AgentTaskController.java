@@ -29,11 +29,13 @@ public class AgentTaskController {
     @Autowired
     private RegisterService registerService;
 
+    /** 接收并认证主平台下发的运维任务，将合法任务提交至异步执行线程。 */
     @PostMapping("/task")
     public ResponseEntity<Map<String, Object>> receiveTask(
-            @RequestHeader(value = "Authorization", required = false) String authorization,
+            @RequestHeader(value = "Authorization", required = true) String authorization,
             @RequestBody PlatformTask task) {
-        // 先校验身份，是否是真的平台下发的任务？
+
+        // 校验请求携带的平台令牌，拒绝未授权的运维操作。
         if (!isAuthorized(authorization)) {
             return response(HttpStatus.UNAUTHORIZED,
                     null,
@@ -43,6 +45,7 @@ public class AgentTaskController {
 
         // 认证成功，开始处理任务
         try {
+            // 校验运维任务并提交线程池异步执行，避免阻塞 HTTP 请求线程。
             agentTaskService.submitTask(task);
             return response(HttpStatus.ACCEPTED,
                     task.getTaskNo(),

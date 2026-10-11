@@ -105,9 +105,8 @@ public class PlatformClient {
 
     /**
      * 上报本机某个运维步骤的执行结果。
-     *
-     * <p>taskNo 标识平台上的业务任务，agentId 标识执行节点，operationType
-     * 标识本次完成的具体步骤。平台使用这三个信息判断哪个节点完成了当前步骤。</p>
+     * taskNo 标识平台上的业务任务，agentId 标识执行节点，operationType
+     * 标识本次完成的具体步骤。平台使用这三个信息判断哪个节点完成了当前步骤。
      *
      * @param taskNo 平台业务任务编号
      * @param stepNo 当前操作在业务任务中的步骤序号

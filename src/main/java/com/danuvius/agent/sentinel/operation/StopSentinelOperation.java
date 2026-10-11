@@ -40,12 +40,14 @@ public class StopSentinelOperation {
     private AgentProperties properties;
 
     /**
-     * 执行固定停止脚本，并等待Sentinel无法PING且端口释放。
+     * 执行本机Sentinel停止脚本，并检查进程服务是否停止及监听端口是否释放。
      */
     public OperationResult execute() {
         long startTime = System.currentTimeMillis();
 
+        // Shell命令执行结果。
         CommandResult commandResult;
+
         try {
             commandResult = fixedScriptExecutor.execute(
                     STOP_SCRIPT,
@@ -75,6 +77,7 @@ public class StopSentinelOperation {
             );
         }
 
+        // 判断脚本是否执行超时。
         if (commandResult.isTimedOut()) {
             return OperationResult.failure(
                     OperationErrorCode.COMMAND_TIMEOUT,
@@ -93,6 +96,7 @@ public class StopSentinelOperation {
             );
         }
 
+        // 验证Sentinel是否真的停止。
         try {
             return waitForStopped(startTime);
         } catch (InterruptedException e) {
@@ -120,6 +124,7 @@ public class StopSentinelOperation {
         }
     }
 
+    /** 定时检查Sentinel健康状态和监听端口，确认服务完全停止。 */
     private OperationResult waitForStopped(long startTime)
             throws IOException, InterruptedException {
         long deadline = System.nanoTime()
@@ -128,7 +133,9 @@ public class StopSentinelOperation {
         boolean portOpen = true;
 
         while (true) {
+            // 检查Sentinel的健康状态，包括能否正常响应。
             lastHealthResult = sentinelHealthChecker.check();
+            // 检查Sentinel的监听端口是否仍然开放。
             portOpen = isSentinelPortOpen();
 
             if (!lastHealthResult.isHealthy() && !portOpen) {

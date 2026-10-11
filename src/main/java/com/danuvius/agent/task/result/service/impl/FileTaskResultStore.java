@@ -36,10 +36,13 @@ public class FileTaskResultStore implements TaskResultStore {
                 .toAbsolutePath().normalize();
     }
 
-    /** {@inheritDoc} */
+    /** 将运维任务执行结果持久化到本地文件，供后续上报和失败重试使用。 */
     @Override
     public synchronized void save(TaskResultRecord record) {
+
+        // 1. 检验记录是否合法
         validateRecord(record);
+        // 2. 写入本地磁盘
         writeRecord(record);
     }
 
@@ -120,7 +123,10 @@ public class FileTaskResultStore implements TaskResultStore {
         if (record == null) {
             throw new IllegalArgumentException("任务结果不能为空");
         }
+
+        // 校验任务编号格式及步骤编号是否合法。
         validateIdentity(record.getTaskNo(), record.getStepNo() == null ? 0 : record.getStepNo());
+
         if (isBlank(record.getAgentId()) || isBlank(record.getOperationType())
                 || isBlank(record.getStatus()) || isBlank(record.getResult())) {
             throw new IllegalArgumentException("任务结果关键字段不能为空");
