@@ -59,5 +59,8 @@ agent:
   config-file-max-bytes: ${AGENT_CONFIG_FILE_MAX_BYTES:10485760}
 
 logging:
+  file:
+    # 默认写入项目根目录下与 src 同级的 logs；部署时可用环境变量覆盖绝对路径。
+    name: ${AGENT_LOG_FILE:logs/redis-monitor-agent.log}
   level:
-    com.danuvius.agent: INFO
+    com.icbc.nbfh: INFO

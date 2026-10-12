@@ -11,7 +11,7 @@
         <relativePath/>
     </parent>
 
-    <groupId>Danuvius.redis</groupId>
+    <groupId>com.icbc.nbfh</groupId>
     <artifactId>redis-monitor-agent</artifactId>
     <version>0.0.1-SNAPSHOT</version>
     <name>redis-monitor-agent</name>
@@ -95,6 +95,7 @@
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
                 <configuration>
+                    <mainClass>com.icbc.nbfh.RedisMonitorAgentApplication</mainClass>
                     <excludes>
                         <exclude>
                             <groupId>org.projectlombok</groupId>
